@@ -1,14 +1,20 @@
-export interface Product {
+export type UserRole = 'Employee' | 'Intern';
+
+export interface UserProfile {
+  uid: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  createdAt: any;
+}
+
+export interface ChatMessage {
   id: string;
-  name: string;
-  price: number;
-  category: string;
-  description: string;
-  image: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: any;
 }
 
-export interface CartItem extends Product {
-  quantity: number;
-}
-
-export type Category = 'All' | 'Tech' | 'Lifestyle' | 'Home' | 'Fashion';
+export type AppScreen = 'splash' | 'login' | 'register' | 'dashboard' | 'chat' | 'profile';

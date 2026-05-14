@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.fullName is string && data.fullName.size() > 0 &&
+             data.email is string && data.email.size() > 0 &&
+             data.role in ['Employee', 'Intern'];
+    }
+
+    function isValidMessage(data) {
+      return data.senderId == request.auth.uid &&
+             data.senderName is string &&
+             data.text is string && data.text.size() > 0 &&
+             data.timestamp == request.time;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && 
+                      isValidUser(request.resource.data) &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'phone', 'role', 'updatedAt']);
+    }
+
+    // Chat messages
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidMessage(request.resource.data);
+    }
+  }
+}
