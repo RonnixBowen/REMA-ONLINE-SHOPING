@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { mockStorage } from '../lib/mockStorage';
 import { motion } from 'motion/react';
+import AlienLogo from '../components/AlienLogo';
 import { Search, User, MessageSquare, LogOut, Briefcase } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -48,7 +49,10 @@ export default function DashboardScreen({ onSelectUser, onViewProfile, onLogout 
     <div className="min-h-screen bg-natural-50 flex flex-col">
       <header className="bg-natural-primary text-white p-6 pb-12 rounded-b-[40px] shadow-lg">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Alien Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <AlienLogo size={32} color="white" />
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+          </div>
           <div className="flex items-center gap-3">
             <button 
               onClick={onViewProfile}

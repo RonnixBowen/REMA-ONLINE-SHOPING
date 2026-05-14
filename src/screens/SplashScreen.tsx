@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Bot } from 'lucide-react';
+import AlienLogo from '../components/AlienLogo';
 
 export default function SplashScreen() {
   return (
@@ -11,7 +11,7 @@ export default function SplashScreen() {
         className="flex flex-col items-center"
       >
         <div className="w-24 h-24 bg-white/20 rounded-[32px] flex items-center justify-center mb-6 backdrop-blur-md">
-          <Bot className="w-12 h-12 text-white" />
+          <AlienLogo size={60} color="white" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight">Alien Chat</h1>
         <p className="text-white/60 mt-2 font-medium">Connecting Interstellar Talent</p>

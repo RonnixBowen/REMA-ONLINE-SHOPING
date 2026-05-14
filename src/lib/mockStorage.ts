@@ -17,15 +17,15 @@ export const mockStorage = {
   },
 
   getCurrentUser: (): UserProfile | null => {
-    const data = localStorage.getItem(CURRENT_USER_KEY);
+    const data = sessionStorage.getItem(CURRENT_USER_KEY);
     return data ? JSON.parse(data) : null;
   },
 
   setCurrentUser: (user: UserProfile | null) => {
     if (user) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
     } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
+      sessionStorage.removeItem(CURRENT_USER_KEY);
     }
   },
 
@@ -40,10 +40,12 @@ export const mockStorage = {
     localStorage.setItem(`${MESSAGES_KEY}_${chatId}`, JSON.stringify(messages));
     
     // Trigger a storage event for "simulated" real-time syncing across tabs
+    // Note: window dispatchEvent is needed for the SAME tab to hear it too if desired,
+    // though storage events normally only fire in other tabs.
     window.dispatchEvent(new Event('storage'));
   },
 
   logout: () => {
-    localStorage.removeItem(CURRENT_USER_KEY);
+    sessionStorage.removeItem(CURRENT_USER_KEY);
   }
 };

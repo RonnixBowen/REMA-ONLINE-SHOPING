@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { mockStorage } from '../lib/mockStorage';
-import { Bot, Mail, Lock } from 'lucide-react';
+import AlienLogo from '../components/AlienLogo';
+import { Mail, Lock } from 'lucide-react';
 
 interface LoginScreenProps {
   onRegister: () => void;
@@ -46,7 +47,7 @@ export default function LoginScreen({ onRegister, onSuccess }: LoginScreenProps)
       <div className="w-full max-w-sm flex-1 flex flex-col justify-center">
         <div className="flex flex-col items-center mb-12">
           <div className="w-20 h-20 bg-natural-primary rounded-[24px] flex items-center justify-center mb-4 shadow-xl">
-            <Bot className="w-10 h-10 text-white" />
+            <AlienLogo size={50} color="white" />
           </div>
           <h1 className="text-3xl font-bold text-natural-700">Welcome Back</h1>
           <p className="text-natural-500 mt-1">Login to Alien Chat</p>
