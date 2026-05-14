@@ -1,45 +1,49 @@
 import { useEffect, useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { mockStorage } from '../lib/mockStorage';
 import { ArrowLeft, User, Mail, Phone, Briefcase, LogOut, Check } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface ProfileScreenProps {
   onBack: () => void;
+  onLogout: () => void;
 }
 
-export default function ProfileScreen({ onBack }: ProfileScreenProps) {
+export default function ProfileScreen({ onBack, onLogout }: ProfileScreenProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [newPhone, setNewPhone] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as UserProfile;
-          setProfile({ ...data, uid: auth.currentUser.uid });
-          setNewPhone(data.phone || '');
-        }
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+    const user = mockStorage.getCurrentUser();
+    if (user) {
+      setProfile(user);
+      setNewPhone(user.phone || '');
+    }
+    setLoading(false);
   }, []);
 
   const handleUpdate = async () => {
     if (!profile) return;
     try {
-      const docRef = doc(db, 'users', profile.uid);
-      await updateDoc(docRef, { phone: newPhone });
-      setProfile({ ...profile, phone: newPhone });
+      const users = mockStorage.getUsers();
+      const updatedUsers = users.map(u => 
+        u.uid === profile.uid ? { ...u, phone: newPhone } : u
+      );
+      localStorage.setItem('alien_chat_users', JSON.stringify(updatedUsers));
+      
+      const updatedProfile = { ...profile, phone: newPhone };
+      setProfile(updatedProfile);
+      mockStorage.setCurrentUser(updatedProfile);
       setIsEditing(false);
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleLogoutClick = () => {
+    mockStorage.logout();
+    onLogout();
   };
 
   if (loading) return null;
@@ -111,7 +115,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           </div>
 
           <button 
-            onClick={() => auth.signOut()}
+            onClick={handleLogoutClick}
             className="w-full py-4 mt-4 flex items-center justify-center gap-2 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-colors border border-red-100"
           >
             <LogOut className="w-5 h-5" />

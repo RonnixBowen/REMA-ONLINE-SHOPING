@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from './lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { mockStorage } from './lib/mockStorage';
 import { AnimatePresence, motion } from 'motion/react';
 import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -12,13 +11,15 @@ import { AppScreen, UserProfile } from './types';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<UserProfile | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const checkAuth = () => {
+      const u = mockStorage.getCurrentUser();
       setUser(u);
+      
       if (isInitialLoading) {
         // Show splash for at least 2 seconds
         setTimeout(() => {
@@ -28,9 +29,19 @@ export default function App() {
       } else {
         setScreen(u ? 'dashboard' : 'login');
       }
-    });
-    return () => unsubscribe();
+    };
+    
+    checkAuth();
+
+    // Listen for storage changes from other tabs
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
   }, [isInitialLoading]);
+
+  const handleLogout = () => {
+    setUser(null);
+    setScreen('login');
+  };
 
   const renderScreen = () => {
     switch (screen) {
@@ -40,14 +51,20 @@ export default function App() {
         return (
           <LoginScreen 
             onRegister={() => setScreen('register')} 
-            onSuccess={() => setScreen('dashboard')} 
+            onSuccess={() => {
+              setUser(mockStorage.getCurrentUser());
+              setScreen('dashboard');
+            }} 
           />
         );
       case 'register':
         return (
           <RegisterScreen 
             onBack={() => setScreen('login')} 
-            onSuccess={() => setScreen('dashboard')} 
+            onSuccess={() => {
+              setUser(mockStorage.getCurrentUser());
+              setScreen('dashboard');
+            }} 
           />
         );
       case 'dashboard':
@@ -58,6 +75,7 @@ export default function App() {
               setScreen('chat');
             }} 
             onViewProfile={() => setScreen('profile')}
+            onLogout={handleLogout}
           />
         );
       case 'chat':
@@ -68,7 +86,12 @@ export default function App() {
           />
         ) : null;
       case 'profile':
-        return <ProfileScreen onBack={() => setScreen('dashboard')} />;
+        return (
+          <ProfileScreen 
+            onBack={() => setScreen('dashboard')} 
+            onLogout={handleLogout}
+          />
+        );
       default:
         return <SplashScreen />;
     }

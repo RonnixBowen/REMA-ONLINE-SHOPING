@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { auth } from '../lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { mockStorage } from '../lib/mockStorage';
 import { Bot, Mail, Lock } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -25,10 +24,18 @@ export default function LoginScreen({ onRegister, onSuccess }: LoginScreenProps)
     setError('');
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      onSuccess();
+      const users = mockStorage.getUsers();
+      const user = users.find(u => u.email === email);
+      const savedPw = localStorage.getItem(`pw_${email}`);
+
+      if (user && savedPw === password) {
+        mockStorage.setCurrentUser(user);
+        onSuccess();
+      } else {
+        throw new Error('Invalid email or password');
+      }
     } catch (err: any) {
-      setError('Invalid email or password');
+      setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { mockStorage } from '../lib/mockStorage';
 import { motion } from 'motion/react';
 import { ArrowLeft, User, Mail, Phone, Lock, Briefcase } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, UserProfile } from '../types';
 
 interface RegisterScreenProps {
   onBack: () => void;
@@ -33,17 +31,25 @@ export default function RegisterScreen({ onBack, onSuccess }: RegisterScreenProp
     setError('');
     
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-      
-      await setDoc(doc(db, 'users', user.uid), {
+      const users = mockStorage.getUsers();
+      if (users.find(u => u.email === formData.email)) {
+        throw new Error('This email is already registered.');
+      }
+
+      const newUser: UserProfile = {
+        uid: Date.now().toString(),
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         role: formData.role,
-        createdAt: serverTimestamp()
-      });
+        createdAt: new Date().toISOString()
+      };
       
+      mockStorage.saveUser(newUser);
+      // Also save password for login logic (in a real app this would be server side)
+      localStorage.setItem(`pw_${newUser.email}`, formData.password);
+      
+      mockStorage.setCurrentUser(newUser);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Registration failed');

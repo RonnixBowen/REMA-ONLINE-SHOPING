@@ -1,6 +1,6 @@
 {
-  "name": "ChatBox Messenger",
-  "description": "A simple, Android-inspired chat application with real-time message simulation and support interface.",
+  "name": "Alien Chat",
+  "description": "A high-fidelity Android-inspired chat application for employees and interns, featuring real-time simulation, full authentication flow, and profile management.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

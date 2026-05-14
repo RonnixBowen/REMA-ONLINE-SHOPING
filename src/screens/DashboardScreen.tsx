@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { mockStorage } from '../lib/mockStorage';
 import { motion } from 'motion/react';
 import { Search, User, MessageSquare, LogOut, Briefcase } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -8,40 +7,37 @@ import { UserProfile } from '../types';
 interface DashboardScreenProps {
   onSelectUser: (user: UserProfile) => void;
   onViewProfile: () => void;
+  onLogout: () => void;
 }
 
-export default function DashboardScreen({ onSelectUser, onViewProfile }: DashboardScreenProps) {
+export default function DashboardScreen({ onSelectUser, onViewProfile, onLogout }: DashboardScreenProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setCurrentUser({ uid: auth.currentUser.uid, ...docSnap.data() } as UserProfile);
-        }
-      }
+    const user = mockStorage.getCurrentUser();
+    setCurrentUser(user);
+
+    const allUsers = mockStorage.getUsers();
+    setUsers(allUsers.filter(u => u.uid !== user?.uid));
+    setLoading(false);
+
+    // Listen for storage changes (new registrations in other tabs)
+    const handleStorage = () => {
+      const updatedUsers = mockStorage.getUsers();
+      setUsers(updatedUsers.filter(u => u.uid !== user?.uid));
     };
-    fetchCurrentUser();
 
-    const q = query(collection(db, 'users'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersList: UserProfile[] = [];
-      snapshot.forEach((doc) => {
-        if (doc.id !== auth.currentUser?.uid) {
-          usersList.push({ uid: doc.id, ...doc.data() } as UserProfile);
-        }
-      });
-      setUsers(usersList);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  const handleLogoutClick = () => {
+    mockStorage.logout();
+    onLogout();
+  };
 
   const filteredUsers = users.filter(u => 
     u.fullName.toLowerCase().includes(search.toLowerCase()) || 
@@ -61,7 +57,7 @@ export default function DashboardScreen({ onSelectUser, onViewProfile }: Dashboa
               <User className="w-6 h-6" />
             </button>
             <button 
-              onClick={() => auth.signOut()}
+              onClick={handleLogoutClick}
               className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
             >
               <LogOut className="w-5 h-5" />

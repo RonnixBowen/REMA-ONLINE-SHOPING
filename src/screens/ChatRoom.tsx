@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { auth, db } from '../lib/firebase';
-import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { mockStorage } from '../lib/mockStorage';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Send, Phone, User } from 'lucide-react';
 import { UserProfile, ChatMessage } from '../types';
@@ -17,37 +16,26 @@ export default function ChatRoom({ recipient, onBack }: ChatRoomProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Generate a consistent chatId for two users
-  const chatId = [auth.currentUser?.uid, recipient.uid].sort().join('_');
+  const chatId = [mockStorage.getCurrentUser()?.uid, recipient.uid].sort().join('_');
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setCurrentUser({ uid: auth.currentUser.uid, ...docSnap.data() } as UserProfile);
-        }
-      }
-    };
-    fetchCurrentUser();
+    const user = mockStorage.getCurrentUser();
+    setCurrentUser(user);
 
-    const q = query(
-      collection(db, `chats/${chatId}/messages`),
-      orderBy('timestamp', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as ChatMessage);
-      });
+    const loadMessages = () => {
+      const msgs = mockStorage.getMessages(chatId);
       setMessages(msgs);
       setTimeout(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }, 100);
-    });
+    };
 
-    return () => unsubscribe();
+    loadMessages();
+
+    // Listen for storage events to simulate real-time
+    const handleStorage = () => loadMessages();
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, [chatId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -55,13 +43,21 @@ export default function ChatRoom({ recipient, onBack }: ChatRoomProps) {
     if (!text.trim() || !currentUser) return;
 
     try {
-      await addDoc(collection(db, `chats/${chatId}/messages`), {
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
         senderId: currentUser.uid,
         senderName: currentUser.fullName,
         text: text.trim(),
-        timestamp: serverTimestamp()
-      });
+        timestamp: new Date().toISOString()
+      };
+      
+      mockStorage.saveMessage(chatId, newMessage);
+      setMessages(prev => [...prev, newMessage]);
       setText('');
+      
+      setTimeout(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }, 100);
     } catch (err) {
       console.error('Error sending message:', err);
     }
@@ -93,7 +89,7 @@ export default function ChatRoom({ recipient, onBack }: ChatRoomProps) {
       >
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
-            const isMe = msg.senderId === auth.currentUser?.uid;
+            const isMe = msg.senderId === mockStorage.getCurrentUser()?.uid;
             return (
               <motion.div
                 key={msg.id}
@@ -115,7 +111,7 @@ export default function ChatRoom({ recipient, onBack }: ChatRoomProps) {
                     {msg.text}
                   </div>
                   <span className="text-[10px] mt-1 px-2 text-natural-400 font-medium">
-                    {msg.timestamp?.toDate() ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
+                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
                   </span>
                 </div>
               </motion.div>
